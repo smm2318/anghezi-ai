@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>چت‌بات هوشمند</title>
+<link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Vazirmatn', sans-serif; }
+  body { background: #0a0a0a; color: #e5e5e5; height: 100vh; display: flex; flex-direction: column; }
+  header { padding: 15px 20px; background: #111; border-bottom: 1px solid #222; display: flex; justify-content: space-between; align-items: center; }
+  header h1 { font-size: 18px; }
+  .status { display: flex; align-items: center; gap: 6px; background: rgba(16,163,127,.1); border: 1px solid rgba(16,163,127,.3); padding: 5px 12px; border-radius: 20px; font-size: 12px; color: #10a37f; }
+  .dot { width: 8px; height: 8px; background: #10a37f; border-radius: 50%; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  #messages { flex: 1; overflow-y: auto; padding: 25px 20px; display: flex; flex-direction: column; gap: 20px; }
+  #messages::-webkit-scrollbar { width: 8px; }
+  #messages::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+  .msg { display: flex; gap: 12px; max-width: 850px; margin: 0 auto; width: 100%; animation: fade .3s ease-out; }
+  @keyframes fade { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+  .avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; background: #1a1a1a; border: 1px solid #333; }
+  .user .avatar { background: linear-gradient(135deg, #10a37f, #0d8a6a); }
+  .bubble { flex: 1; padding-top: 6px; line-height: 1.7; font-size: 15px; word-wrap: break-word; min-width: 0; }
+  .user .bubble { color: #fff; }
+  .bubble pre { background: #1a1a1a; border: 1px solid #333; border-radius: 8px; padding: 12px; overflow-x: auto; margin: 10px 0; direction: ltr; text-align: left; }
+  .bubble code { background: #1a1a1a; padding: 2px 6px; border-radius: 4px; font-family: 'Consolas', monospace; font-size: 13px; direction: ltr; display: inline-block; }
+  .bubble pre code { background: transparent; padding: 0; }
+  .bubble p { margin-bottom: 10px; }
+  .bubble p:last-child { margin-bottom: 0; }
+  .bubble strong { color: #fff; }
+  .typing { display: flex; gap: 5px; padding: 8px 0; }
+  .typing span { width: 8px; height: 8px; background: #10a37f; border-radius: 50%; animation: bounce 1.4s infinite; }
+  .typing span:nth-child(2) { animation-delay: .2s; }
+  .typing span:nth-child(3) { animation-delay: .4s; }
+  @keyframes bounce { 0%,60%,100%{transform:translateY(0);opacity:.5} 30%{transform:translateY(-10px);opacity:1} }
+  .input-area { padding: 15px 20px 20px; border-top: 1px solid #1a1a1a; background: #0a0a0a; }
+  .input-box { max-width: 850px; margin: 0 auto; display: flex; align-items: flex-end; gap: 10px; background: #1a1a1a; border: 1px solid #333; border-radius: 15px; padding: 10px 15px; transition: border-color .2s; }
+  .input-box:focus-within { border-color: #10a37f; box-shadow: 0 0 0 3px rgba(16,163,127,.1); }
+  textarea { flex: 1; background: transparent; border: none; color: #fff; font-family: 'Vazirmatn', sans-serif; font-size: 15px; resize: none; outline: none; max-height: 150px; line-height: 1.5; padding: 5px 0; }
+  textarea::placeholder { color: #666; }
+  .send { background: #10a37f; color: white; border: none; width: 38px; height: 38px; border-radius: 10px; font-size: 18px; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all .2s; }
+  .send:hover:not(:disabled) { background: #0d8a6a; transform: scale(1.05); }
+  .send:disabled { background: #333; cursor: not-allowed; opacity: .5; }
+  .hint { text-align: center; font-size: 11px; color: #555; margin-top: 8px; }
+  @media (max-width: 768px) { #messages { padding: 15px; } .msg { gap: 8px; } .avatar { width: 30px; height: 30px; font-size: 15px; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>🤖 دستیار هوشمند</h1>
+  <div class="status"><span class="dot"></span> آنلاین</div>
+</header>
+
+<div id="messages">
+  <div class="msg assistant">
+    <div class="avatar">🤖</div>
+    <div class="bubble">سلام! 👋 چطور می‌تونم کمکت کنم؟</div>
+  </div>
+</div>
+
+<div class="input-area">
+  <div class="input-box">
+    <textarea id="input" placeholder="پیام خود را بنویسید..." rows="1"></textarea>
+    <button class="send" id="send">➤</button>
+  </div>
+  <p class="hint">Enter برای ارسال • Shift + Enter برای خط جدید</p>
+</div>
+
+<script>
+// ============================================================
+// 🔑 کلید API رو اینجا بذار (بین دو تا " ")
+// ============================================================
+const API_KEY = "";
+// ============================================================
+
+const messagesEl = document.getElementById('messages');
+const inputEl = document.getElementById('input');
+const sendBtn = document.getElementById('send');
+
+let conversation = [
+  { role: 'system', content: 'تو یک دستیار هوشمند فارسی‌زبان هستی. پاسخ‌هایت مختصر، دقیق و مفید باشد. اگر کد می‌دهی از مارک‌داون استفاده کن.' }
+];
+
+inputEl.addEventListener('input', () => {
+  inputEl.style.height = 'auto';
+  inputEl.style.height = Math.min(inputEl.scrollHeight, 150) + 'px';
+});
+
+inputEl.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+});
+sendBtn.addEventListener('click', sendMessage);
+
+function mdToHtml(text) {
+  text = text.replace(/```(\w*)\n?([\s\S]*?)```/g, (m, lang, code) => 
+    `<pre><code>${escapeHtml(code.trim())}</code></pre>`);
+  text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+  text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  text = text.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  text = text.split('\n\n').map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('');
+  return text;
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function addMessage(role, content) {
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+  div.innerHTML = `
+    <div class="avatar">${role === 'user' ? '👤' : '🤖'}</div>
+    <div class="bubble">${role === 'user' ? escapeHtml(content).replace(/\n/g,'<br>') : mdToHtml(content)}</div>
+  `;
+  messagesEl.appendChild(div);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+function addTyping() {
+  const div = document.createElement('div');
+  div.className = 'msg assistant';
+  div.id = 'typing-indicator';
+  div.innerHTML = `
+    <div class="avatar">🤖</div>
+    <div class="bubble"><div class="typing"><span></span><span></span><span></span></div></div>
+  `;
+  messagesEl.appendChild(div);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+async function sendMessage() {
+  const text = inputEl.value.trim();
+  if (!text) return;
+
+  if (!API_KEY || API_KEY.trim() === "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") {
+    alert('⚠️ لطفاً کلید API خود را در بالای اسکریپت قرار دهید');
+    return;
+  }
+
+  addMessage('user', text);
+  conversation.push({ role: 'user', content: text });
+
+  inputEl.value = '';
+  inputEl.style.height = 'auto';
+  sendBtn.disabled = true;
+  addTyping();
+
+  try {
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${API_KEY}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: conversation,
+        temperature: 0.7,
+        max_tokens: 1500
+      })
+    });
+
+    document.getElementById('typing-indicator')?.remove();
+
+    if (!res.ok) {
+      const errText = await res.text();
+      let errMsg = 'خطا در ارتباط با OpenAI';
+      try {
+        const errJson = JSON.parse(errText);
+        errMsg = errJson.error?.message || errMsg;
+      } catch(e) {
+        errMsg = `خطا ${res.status}: ${errText.slice(0, 200)}`;
+      }
+      throw new Error(errMsg);
+    }
+
+    const data = await res.json();
+    const reply = data.choices[0].message.content;
+    
+    conversation.push({ role: 'assistant', content: reply });
+    addMessage('assistant', reply);
+
+  } catch (error) {
+    document.getElementById('typing-indicator')?.remove();
+    addMessage('assistant', `❌ خطا: ${error.message}`);
+  } finally {
+    sendBtn.disabled = false;
+    inputEl.focus();
+  }
+}
+
+inputEl.focus();
+</script>
+</body>
+</html>
