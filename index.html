@@ -157,7 +157,7 @@
 
 <script>
 // ============================================================
-// 🌐 آدرس Cloudflare Worker خودت (اینو عوض نکن، برای تو درسته)
+// 🌐 آدرس Cloudflare Worker خودت
 // ============================================================
 const API_URL = "https://fragrant-wind-03ab.mohsenn-smm.workers.dev";
 // ============================================================
@@ -170,11 +170,13 @@ let conversation = [
   { role: 'system', content: 'تو یک دستیار هوشمند فارسی‌زبان هستی. پاسخ‌هایت مختصر، دقیق و مفید باشد. اگر کد می‌دهی از مارک‌داون استفاده کن.' }
 ];
 
+// ارتفاع خودکار textarea
 inputEl.addEventListener('input', () => {
   inputEl.style.height = 'auto';
   inputEl.style.height = Math.min(inputEl.scrollHeight, 150) + 'px';
 });
 
+// Enter برای ارسال
 inputEl.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault();
@@ -183,6 +185,7 @@ inputEl.addEventListener('keydown', (e) => {
 });
 sendBtn.addEventListener('click', sendMessage);
 
+// تبدیل ساده مارک‌داون به HTML
 function mdToHtml(text) {
   text = text.replace(/```(\w*)\n?([\s\S]*?)```/g, (m, lang, code) => 
     `<pre><code>${escapeHtml(code.trim())}</code></pre>`);
@@ -241,7 +244,7 @@ async function sendMessage() {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'deepseek-chat',
         messages: conversation,
         temperature: 0.7,
         max_tokens: 1500
